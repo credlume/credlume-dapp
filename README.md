@@ -3,7 +3,7 @@ Credlume helps builders and projects prove their credibility through verified on
 This MVP runs on the Quai Orchard Testnet, demonstrating how achievements are submitted, verified, and stored on-chain.
 
 - **Live MVP**
--  [https://credlume.github.io/credlume-dapp]https://credlume.github.io/credlume-dapp
+- https://credlume.github.io/credlume-dapp
 
 - **Core Features**
 - Wallet connection via Quai testnet
