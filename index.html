@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credlume - Web3 Reputation Protocol</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e27;
+            background-image: 
+                radial-gradient(at 20% 10%, rgba(26, 115, 232, 0.15) 0px, transparent 50%),
+                radial-gradient(at 80% 80%, rgba(26, 115, 232, 0.1) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(13, 71, 161, 0.05) 0px, transparent 50%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #e4e4e7;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3.5em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1A73E8 0%, #64b5f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+            letter-spacing: -0.02em;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            color: #a1a1aa;
+            font-weight: 400;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 40px;
+            margin-bottom: 30px;
+            transition: all 0.3s ease;
+            animation: fadeInUp 0.6s ease-out backwards;
+        }
+
+        .card:hover {
+            border-color: rgba(26, 115, 232, 0.3);
+            box-shadow: 0 20px 60px rgba(26, 115, 232, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .status-box {
+            padding: 16px 24px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.95em;
+            letter-spacing: 0.3px;
+        }
+
+        .status-disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .status-connected {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px 24px;
+            border: none;
+            border-radius: 16px;
+            font-size: 1.05em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1A73E8 0%, #1557b0 100%);
+            color: white;
+            box-shadow: 0 8px 24px rgba(26, 115, 232, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(26, 115, 232, 0.4);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .form-group {
+            margin-bottom: 28px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #e4e4e7;
+            font-size: 0.95em;
+            letter-spacing: 0.3px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            font-size: 1em;
+            color: #e4e4e7;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1A73E8;
+            background: rgba(26, 115, 232, 0.05);
+            box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-group small {
+            color: #71717a;
+            font-size: 0.85em;
+            margin-top: 6px;
+            display: block;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            font-size: 0.95em;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .submission-item {
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .submission-item:hover {
+            border-color: rgba(26, 115, 232, 0.3);
+            background: rgba(26, 115, 232, 0.05);
+        }
+
+        .submission-item h4 {
+            color: #1A73E8;
+            margin-bottom: 12px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .submission-item p {
+            margin: 8px 0;
+            color: #a1a1aa;
+            line-height: 1.6;
+        }
+
+        .submission-item a {
+            color: #1A73E8;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .submission-item a:hover {
+            color: #64b5f6;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-pending {
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fde047;
+        }
+
+        .badge-verified {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        .badge-rejected {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .contributor-card {
+            background: linear-gradient(135deg, rgba(26, 115, 232, 0.08) 0%, rgba(13, 71, 161, 0.05) 100%);
+            padding: 24px;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(26, 115, 232, 0.15);
+        }
+
+        .contributor-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 48px rgba(26, 115, 232, 0.2);
+            border-color: rgba(26, 115, 232, 0.4);
+        }
+
+        .contributor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .contributor-address {
+            font-size: 1.15em;
+            font-weight: 700;
+            color: #1A73E8;
+            letter-spacing: -0.01em;
+        }
+
+        .badge-count {
+            background: linear-gradient(135deg, #1A73E8 0%, #1557b0 100%);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.9em;
+            box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+        }
+
+        .achievement-types {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .achievement-tag {
+            background: rgba(255, 255, 255, 0.08);
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 0.85em;
+            color: #e4e4e7;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.2s;
+        }
+
+        .achievement-tag:hover {
+            background: rgba(26, 115, 232, 0.15);
+            border-color: rgba(26, 115, 232, 0.3);
+        }
+
+        .contributor-badges {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+        }
+
+        .contributor-badges.expanded {
+            display: block;
+            animation: expandDown 0.3s ease-out;
+        }
+
+        .expand-indicator {
+            text-align: center;
+            color: #64b5f6;
+            font-size: 0.9em;
+            margin-top: 12px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .badge-item-mini {
+            background: rgba(26, 115, 232, 0.08);
+            padding: 16px;
+            border-radius: 14px;
+            margin-bottom: 12px;
+            border-left: 3px solid #1A73E8;
+            transition: all 0.3s;
+        }
+
+        .badge-item-mini:hover {
+            background: rgba(26, 115, 232, 0.12);
+            transform: translateX(4px);
+        }
+
+        .badge-item-mini h5 {
+            color: #64b5f6;
+            margin-bottom: 8px;
+            font-size: 1em;
+            font-weight: 600;
+        }
+
+        .badge-item-mini p {
+            font-size: 0.9em;
+            color: #a1a1aa;
+            margin: 4px 0;
+        }
+
+        h2 {
+            color: #e4e4e7;
+            font-size: 1.8em;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes expandDown {
+            from {
+                opacity: 0;
+                max-height: 0;
+            }
+            to {
+                opacity: 1;
+                max-height: 1000px;
+            }
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+        .card:nth-child(5) { animation-delay: 0.5s; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Credlume</h1>
+            <p>Prove Your Story. Verify Your Value. Illuminate Trust.</p>
+        </div>
+
+        <div class="card">
+            <div id="walletStatus" class="status-box status-disconnected">
+                Wallet Not Connected
+            </div>
+            <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">
+                Connect Pelagus Wallet
+            </button>
+            <p id="walletAddress" style="margin-top: 15px; text-align: center; color: #71717a; font-size: 0.9em;"></p>
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">🌟 Verified Contributors</h2>
+            <p style="color: #71717a; margin-bottom: 24px; font-size: 0.95em;">Discover verified builders in the Credlume community</p>
+            <div id="communityList">
+                <p style="text-align: center; color: #52525b;">Connect your wallet to load community profiles</p>
+            </div>
+        </div>
+
+        <div class="card hidden" id="submissionForm">
+            <h2 style="margin-bottom: 20px;">Submit Your Achievement</h2>
+            
+            <div id="alertBox" class="hidden"></div>
+
+            <form onsubmit="submitAchievement(event)">
+                <div class="form-group">
+                    <label for="achievementType">Achievement Type *</label>
+                    <select id="achievementType" required>
+                        <option value="">Select achievement type...</option>
+                        <option value="Hackathon Win">Hackathon Win</option>
+                        <option value="Bounty Completion">Bounty Completion</option>
+                        <option value="DAO Contribution">DAO Contribution</option>
+                        <option value="Open Source Contribution">Open Source Contribution</option>
+                        <option value="Community Management">Community Management</option>
+                        <option value="Content Creation">Content Creation</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description *</label>
+                    <textarea 
+                        id="description" 
+                        placeholder="Describe your achievement in detail..."
+                        required
+                    ></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="proofLink">Proof Link</label>
+                    <input 
+                        type="url" 
+                        id="proofLink" 
+                        placeholder="https://... (optional)"
+                    >
+                    <small>Link to proof (GitHub, Twitter, project page, etc.)</small>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    Submit Achievement
+                </button>
+            </form>
+        </div>
+
+        <div class="card hidden" id="mySubmissions">
+            <h2 style="margin-bottom: 20px;">My Submissions</h2>
+            <div id="submissionsList"></div>
+        </div>
+
+        <div class="card hidden" id="myBadges">
+            <h2 style="margin-bottom: 20px;">My Verified Badges</h2>
+            <div id="badgesList"></div>
+        </div>
+    </div>
+
+    <script>
+        const CONTRACT_ABI = [
+            "function submitAchievement(string memory _achievementType, string memory _description, string memory _proofLink) public returns (uint256)",
+            "function getUserSubmissions(address _user) public view returns (uint256[] memory)",
+            "function getUserBadges(address _user) public view returns (uint256[] memory)",
+            "function getSubmissionDetails(uint256 _submissionId) public view returns (uint256 id, address user, string memory achievementType, string memory description, string memory proofLink, uint256 timestamp, bool verified, bool rejected)",
+            "function getBadgeDetails(uint256 _badgeId) public view returns (uint256 id, address owner, string memory achievementType, string memory description, uint256 verifiedAt)"
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+        let userAddress;
+        const contractAddress = '0x004E77C60C41A46f9afe8e6eD0BB8350592a5091';
+
+        function loadCommunityProfiles() {
+            setTimeout(async () => {
+                const communityList = document.getElementById('communityList');
+                
+                try {
+                    communityList.innerHTML = '<p style="text-align: center; color: #52525b;">Loading community profiles...</p>';
+
+                    const userBadges = {};
+                    
+                    for (let i = 1; i <= 20; i++) {
+                        try {
+                            const details = await contract.getBadgeDetails(i);
+                            
+                            if (!details || !details[1] || details[1] === '0x0000000000000000000000000000000000000000') {
+                                continue;
+                            }
+
+                            const owner = details[1].toLowerCase();
+                            
+                            if (!userBadges[owner]) {
+                                userBadges[owner] = [];
+                            }
+
+                            userBadges[owner].push({
+                                id: i,
+                                type: details[2] || 'Unknown',
+                                description: details[3] || '',
+                                verifiedAt: Number(details[4]) || 0
+                            });
+                        } catch (err) {
+                            continue;
+                        }
+                    }
+
+                    const contributors = Object.entries(userBadges)
+                        .map(([address, badges]) => ({ address, badges }))
+                        .sort((a, b) => b.badges.length - a.badges.length);
+
+                    if (contributors.length === 0) {
+                        communityList.innerHTML = '<p style="text-align: center; color: #71717a;">No verified contributors yet. Be the first!</p>';
+                        return;
+                    }
+
+                    let html = '';
+                    contributors.forEach(contributor => {
+                        const shortAddress = `${contributor.address.slice(0, 6)}...${contributor.address.slice(-4)}`;
+                        const badgeCount = contributor.badges.length;
+                        const uniqueTypes = [...new Set(contributor.badges.map(b => b.type))];
+                        
+                        const typeTags = uniqueTypes.slice(0, 3).map(type => 
+                            `<span class="achievement-tag">${type}</span>`
+                        ).join('');
+                        
+                        const moreTypes = uniqueTypes.length > 3 ? `<span class="achievement-tag">+${uniqueTypes.length - 3} more</span>` : '';
+
+                        const badgeList = contributor.badges.map(badge => {
+                            const date = new Date(badge.verifiedAt * 1000).toLocaleDateString();
+                            return `
+                                <div class="badge-item-mini">
+                                    <h5>🏆 ${badge.type}</h5>
+                                    <p>${badge.description}</p>
+                                    <p><small>Verified: ${date}</small></p>
+                                </div>
+                            `;
+                        }).join('');
+
+                        html += `
+                            <div class="contributor-card" onclick="toggleBadges('${contributor.address}')">
+                                <div class="contributor-header">
+                                    <div class="contributor-address">${shortAddress}</div>
+                                    <div class="badge-count">${badgeCount} Badge${badgeCount > 1 ? 's' : ''}</div>
+                                </div>
+                                <div class="achievement-types">
+                                    ${typeTags}${moreTypes}
+                                </div>
+                                <div class="expand-indicator" id="indicator-${contributor.address}">
+                                    ▼ Click to view all badges
+                                </div>
+                                <div class="contributor-badges" id="badges-${contributor.address}">
+                                    ${badgeList}
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    communityList.innerHTML = html;
+
+                } catch (error) {
+                    console.error('Error loading community:', error);
+                    communityList.innerHTML = '<p style="text-align: center; color: #71717a;">Unable to load community profiles.</p>';
+                }
+            }, 1500);
+        }
+
+        function toggleBadges(address) {
+            const badgesDiv = document.getElementById(`badges-${address}`);
+            const indicator = document.getElementById(`indicator-${address}`);
+            
+            if (badgesDiv && indicator) {
+                if (badgesDiv.classList.contains('expanded')) {
+                    badgesDiv.classList.remove('expanded');
+                    indicator.textContent = '▼ Click to view all badges';
+                } else {
+                    badgesDiv.classList.add('expanded');
+                    indicator.textContent = '▲ Click to hide badges';
+                }
+            }
+        }
+
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    showAlert('Pelagus wallet not detected! Please install Pelagus extension.', 'error');
+                    return;
+                }
+
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+
+                userAddress = accounts[0];
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(contractAddress, CONTRACT_ABI, signer);
+
+                document.getElementById('walletStatus').textContent = 'Wallet Connected ✓';
+                document.getElementById('walletStatus').className = 'status-box status-connected';
+                document.getElementById('walletAddress').textContent = `Address: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+                document.getElementById('connectBtn').textContent = 'Connected';
+                document.getElementById('connectBtn').disabled = true;
+
+                document.getElementById('submissionForm').classList.remove('hidden');
+                document.getElementById('mySubmissions').classList.remove('hidden');
+                document.getElementById('myBadges').classList.remove('hidden');
+
+                showAlert('Wallet connected successfully!', 'success');
+
+                await loadUserSubmissions();
+                await loadUserBadges();
+                
+                loadCommunityProfiles();
+
+            } catch (error) {
+                console.error('Error connecting wallet:', error);
+                showAlert('Failed to connect wallet: ' + error.message, 'error');
+            }
+        }
+
+        async function submitAchievement(event) {
+            event.preventDefault();
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Submitting...';
+
+            try {
+                const achievementType = document.getElementById('achievementType').value;
+                const description = document.getElementById('description').value;
+                const proofLink = document.getElementById('proofLink').value || '';
+
+                const tx = await contract.submitAchievement(
+                    achievementType,
+                    description,
+                    proofLink
+                );
+
+                showAlert('Transaction submitted! Waiting for confirmation...', 'info');
+
+                await tx.wait();
+
+                showAlert('Achievement submitted successfully! Waiting for admin verification.', 'success');
+
+                document.getElementById('achievementType').value = '';
+                document.getElementById('description').value = '';
+                document.getElementById('proofLink').value = '';
+
+                await loadUserSubmissions();
+
+            } catch (error) {
+                console.error('Error submitting achievement:', error);
+                showAlert('Failed to submit: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Submit Achievement';
+            }
+        }
+
+        async function loadUserSubmissions() {
+            try {
+                const submissionIds = await contract.getUserSubmissions(userAddress);
+                const submissionsList = document.getElementById('submissionsList');
+
+                if (submissionIds.length === 0) {
+                    submissionsList.innerHTML = '<p style="text-align: center; color: #71717a;">No submissions yet.</p>';
+                    return;
+                }
+
+                let html = '';
+                for (let i = submissionIds.length - 1; i >= 0; i--) {
+                    const id = submissionIds[i];
+                    const details = await contract.getSubmissionDetails(id);
+                    
+                    let statusBadge;
+                    if (details[6]) {
+                        statusBadge = '<span class="badge badge-verified">Verified ✓</span>';
+                    } else if (details[7]) {
+                        statusBadge = '<span class="badge badge-rejected">Rejected ✗</span>';
+                    } else {
+                        statusBadge = '<span class="badge badge-pending">Pending</span>';
+                    }
+
+                    const date = new Date(Number(details[5]) * 1000).toLocaleDateString();
+
+                    html += `
+                        <div class="submission-item">
+                            <h4>${details[2]}</h4>
+                            ${statusBadge}
+                            <p><strong>Description:</strong> ${details[3]}</p>
+                            ${details[4] ? `<p><strong>Proof:</strong> <a href="${details[4]}" target="_blank">View Link</a></p>` : ''}
+                            <p><strong>Submitted:</strong> ${date}</p>
+                        </div>
+                    `;
+                }
+
+                submissionsList.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading submissions:', error);
+            }
+        }
+
+        async function loadUserBadges() {
+            try {
+                const badgeIds = await contract.getUserBadges(userAddress);
+                const badgesList = document.getElementById('badgesList');
+
+                if (badgeIds.length === 0) {
+                    badgesList.innerHTML = '<p style="text-align: center; color: #71717a;">No verified badges yet.</p>';
+                    return;
+                }
+
+                let html = '';
+                for (let i = badgeIds.length - 1; i >= 0; i--) {
+                    const id = badgeIds[i];
+                    const details = await contract.getBadgeDetails(id);
+                    
+                    const date = new Date(Number(details[4]) * 1000).toLocaleDateString();
+
+                    html += `
+                        <div class="submission-item" style="border-color: rgba(26, 115, 232, 0.3); background: rgba(26, 115, 232, 0.05);">
+                            <h4>🏆 ${details[2]}</h4>
+                            <span class="badge badge-verified">Verified ✓</span>
+                            <p><strong>Description:</strong> ${details[3]}</p>
+                            <p><strong>Verified On:</strong> ${date}</p>
+                            <p><strong>Badge ID:</strong> #${details[0].toString()}</p>
+                        </div>
+                    `;
+                }
+
+                badgesList.innerHTML = html;
+
+            } catch (error) {
+                console.error('Error loading badges:', error);
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `alert alert-${type}`;
+            alertBox.textContent = message;
+            alertBox.classList.remove('hidden');
+
+            setTimeout(() => {
+                alertBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                location.reload();
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                location.reload();
+            });
+        }
+    </script>
+</body>
+</html>
