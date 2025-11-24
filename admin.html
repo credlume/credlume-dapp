@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credlume Admin Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #0a0e27;
+            background-image: 
+                radial-gradient(at 20% 10%, rgba(26, 115, 232, 0.15) 0px, transparent 50%),
+                radial-gradient(at 80% 80%, rgba(26, 115, 232, 0.1) 0px, transparent 50%);
+            min-height: 100vh;
+            padding: 40px 20px;
+            color: #e4e4e7;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            font-weight: 800;
+            background: linear-gradient(135deg, #1A73E8 0%, #64b5f6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #a1a1aa;
+            font-size: 1.1em;
+        }
+
+        .nav-links {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .nav-links a {
+            color: #64b5f6;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: #1A73E8;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .status-box {
+            padding: 16px 24px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        .status-disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .status-connected {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        .status-warning {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fde047;
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #1A73E8 0%, #1557b0 100%);
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(26, 115, 232, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+            padding: 10px 20px;
+            font-size: 0.9em;
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: rgba(34, 197, 94, 0.25);
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 10px 20px;
+            font-size: 0.9em;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: rgba(239, 68, 68, 0.25);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 32px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            padding-bottom: 8px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: transparent;
+            border: none;
+            color: #a1a1aa;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s;
+            border-radius: 8px 8px 0 0;
+            font-family: inherit;
+        }
+
+        .tab:hover {
+            color: #e4e4e7;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tab.active {
+            color: #1A73E8;
+            background: rgba(26, 115, 232, 0.1);
+        }
+
+        .submission-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            transition: all 0.3s;
+        }
+
+        .submission-card:hover {
+            border-color: rgba(26, 115, 232, 0.3);
+            background: rgba(26, 115, 232, 0.05);
+        }
+
+        .submission-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .submission-title {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .submission-title h3 {
+            color: #64b5f6;
+            font-size: 1.2em;
+            margin-bottom: 8px;
+        }
+
+        .submission-id {
+            font-size: 0.85em;
+            color: #71717a;
+        }
+
+        .submission-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .submission-details {
+            margin-bottom: 16px;
+        }
+
+        .detail-row {
+            margin: 8px 0;
+            color: #a1a1aa;
+            font-size: 0.95em;
+        }
+
+        .detail-row strong {
+            color: #e4e4e7;
+        }
+
+        .detail-row a {
+            color: #1A73E8;
+            text-decoration: none;
+        }
+
+        .detail-row a:hover {
+            color: #64b5f6;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 0.8em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        .badge-pending {
+            background: rgba(251, 191, 36, 0.15);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fde047;
+        }
+
+        .badge-verified {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        .badge-rejected {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            background: rgba(26, 115, 232, 0.08);
+            border: 1px solid rgba(26, 115, 232, 0.2);
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: 700;
+            color: #64b5f6;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            color: #a1a1aa;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: #71717a;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .alert {
+            padding: 16px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 0.95em;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #93c5fd;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            color: #86efac;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+        }
+
+        .achievement-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .achievement-bar-label {
+            min-width: 150px;
+            font-size: 0.9em;
+            color: #a1a1aa;
+        }
+
+        .achievement-bar-visual {
+            flex: 1;
+            height: 24px;
+            background: rgba(26, 115, 232, 0.2);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .achievement-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #1A73E8, #64b5f6);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+        }
+
+        .achievement-bar-count {
+            font-size: 0.85em;
+            font-weight: 600;
+            color: white;
+        }
+
+        .contributor-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: rgba(26, 115, 232, 0.05);
+            border: 1px solid rgba(26, 115, 232, 0.15);
+            border-radius: 8px;
+        }
+
+        .contributor-address {
+            font-family: monospace;
+            color: #64b5f6;
+            font-size: 0.9em;
+        }
+
+        .contributor-badges {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            color: #86efac;
+            font-weight: 600;
+        }
+
+        .activity-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 3px solid #1A73E8;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        .activity-text {
+            color: #a1a1aa;
+        }
+
+        .activity-time {
+            color: #71717a;
+            font-size: 0.85em;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 20px 12px;
+            }
+
+            .card {
+                padding: 24px 16px;
+            }
+
+            .submission-header {
+                flex-direction: column;
+            }
+
+            .submission-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .btn-success, .btn-danger {
+                width: 100%;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                overflow-x: auto;
+            }
+
+            .tab {
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚙️ Admin Dashboard</h1>
+            <p>Manage Credlume submissions and verifications</p>
+        </div>
+
+        <div class="nav-links">
+            <a href="index.html">← Back to Home</a> | <a href="app.html">Go to App</a>
+        </div>
+
+        <div class="card">
+            <div id="walletStatus" class="status-box status-disconnected">
+                Admin Wallet Not Connected
+            </div>
+            <button class="btn btn-primary" id="connectBtn" onclick="connectWallet()">
+                Connect Admin Wallet
+            </button>
+            <p id="walletAddress" style="margin-top: 15px; text-align: center; color: #71717a; font-size: 0.9em;"></p>
+        </div>
+
+        <div id="alertBox" class="hidden"></div>
+
+        <div id="dashboardContent" class="hidden">
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="uniqueUsers">0</div>
+                    <div class="stat-label">Unique Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalSubmissions">0</div>
+                    <div class="stat-label">Total Submissions</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="pendingSubmissions">0</div>
+                    <div class="stat-label">Pending Review</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="verifiedSubmissions">0</div>
+                    <div class="stat-label">Verified</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="rejectedSubmissions">0</div>
+                    <div class="stat-label">Rejected</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalBadges">0</div>
+                    <div class="stat-label">Total Badges Issued</div>
+                </div>
+            </div>
+
+            <!-- Analytics Section -->
+            <div class="card" style="margin-bottom: 32px;">
+                <h2 style="margin-bottom: 24px;">📊 Platform Analytics</h2>
+                
+                <!-- Achievement Type Breakdown -->
+                <div style="margin-bottom: 32px;">
+                    <h3 style="font-size: 1.2em; margin-bottom: 16px; color: #e4e4e7;">Achievement Type Distribution</h3>
+                    <div id="achievementTypeChart" style="display: grid; gap: 12px;"></div>
+                </div>
+
+                <!-- Top Contributors -->
+                <div style="margin-bottom: 32px;">
+                    <h3 style="font-size: 1.2em; margin-bottom: 16px; color: #e4e4e7;">Top Contributors</h3>
+                    <div id="topContributors" style="display: grid; gap: 12px;"></div>
+                </div>
+
+                <!-- Recent Activity Timeline -->
+                <div>
+                    <h3 style="font-size: 1.2em; margin-bottom: 16px; color: #e4e4e7;">Recent Activity (Last 10)</h3>
+                    <div id="recentActivity" style="display: grid; gap: 8px;"></div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('pending')">Pending</button>
+                <button class="tab" onclick="switchTab('verified')">Verified</button>
+                <button class="tab" onclick="switchTab('rejected')">Rejected</button>
+                <button class="tab" onclick="switchTab('all')">All</button>
+            </div>
+
+            <!-- Submissions List -->
+            <div class="card">
+                <div id="submissionsList">
+                    <div class="empty-state">Loading submissions...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CONTRACT_ABI = [
+            "function admin() public view returns (address)",
+            "function nextSubmissionId() public view returns (uint256)",
+            "function getSubmissionDetails(uint256 _submissionId) public view returns (uint256 id, address user, string memory achievementType, string memory description, string memory proofLink, uint256 timestamp, bool verified, bool rejected)",
+            "function verifySubmission(uint256 _submissionId) public",
+            "function rejectSubmission(uint256 _submissionId) public"
+        ];
+
+        let provider;
+        let signer;
+        let contract;
+        let userAddress;
+        let allSubmissions = [];
+        let currentTab = 'pending';
+        const contractAddress = '0x004E77C60C41A46f9afe8e6eD0BB8350592a5091';
+
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    showAlert('Pelagus wallet not detected!', 'error');
+                    return;
+                }
+
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+
+                userAddress = accounts[0];
+                provider = new ethers.BrowserProvider(window.ethereum);
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(contractAddress, CONTRACT_ABI, signer);
+
+                // Check if user is admin
+                const adminAddress = await contract.admin();
+                if (adminAddress.toLowerCase() !== userAddress.toLowerCase()) {
+                    showAlert('Access Denied: You are not the admin of this contract!', 'error');
+                    return;
+                }
+
+                document.getElementById('walletStatus').textContent = 'Admin Connected ✓';
+                document.getElementById('walletStatus').className = 'status-box status-connected';
+                document.getElementById('walletAddress').textContent = `Admin: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+                document.getElementById('connectBtn').style.display = 'none';
+                document.getElementById('dashboardContent').classList.remove('hidden');
+
+                showAlert('Admin access granted!', 'success');
+                await loadAllSubmissions();
+
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Failed to connect: ' + error.message, 'error');
+            }
+        }
+
+        async function loadAllSubmissions() {
+            try {
+                showAlert('Loading all submissions and analytics...', 'info');
+                
+                const nextId = await contract.nextSubmissionId();
+                const totalSubmissions = Number(nextId) - 1;
+
+                allSubmissions = [];
+                let pending = 0, verified = 0, rejected = 0;
+                const uniqueUsersSet = new Set();
+                const achievementTypes = {};
+                const userBadgeCounts = {};
+                const recentActivities = [];
+
+                for (let i = 1; i <= totalSubmissions; i++) {
+                    try {
+                        const details = await contract.getSubmissionDetails(i);
+                        
+                        if (details[1] === '0x0000000000000000000000000000000000000000') {
+                            continue;
+                        }
+
+                        const submission = {
+                            id: Number(details[0]),
+                            user: details[1],
+                            achievementType: details[2],
+                            description: details[3],
+                            proofLink: details[4],
+                            timestamp: Number(details[5]),
+                            verified: details[6],
+                            rejected: details[7]
+                        };
+
+                        allSubmissions.push(submission);
+                        uniqueUsersSet.add(submission.user.toLowerCase());
+
+                        // Count by status
+                        if (submission.verified) {
+                            verified++;
+                            // Track badge counts per user
+                            userBadgeCounts[submission.user] = (userBadgeCounts[submission.user] || 0) + 1;
+                        } else if (submission.rejected) {
+                            rejected++;
+                        } else {
+                            pending++;
+                        }
+
+                        // Count achievement types
+                        achievementTypes[submission.achievementType] = (achievementTypes[submission.achievementType] || 0) + 1;
+
+                        // Recent activities
+                        recentActivities.push({
+                            type: submission.verified ? 'verified' : submission.rejected ? 'rejected' : 'submitted',
+                            achievementType: submission.achievementType,
+                            user: submission.user,
+                            timestamp: submission.timestamp
+                        });
+
+                    } catch (err) {
+                        console.error(`Error loading submission ${i}:`, err);
+                    }
+                }
+
+                // Update stats
+                document.getElementById('uniqueUsers').textContent = uniqueUsersSet.size;
+                document.getElementById('totalSubmissions').textContent = allSubmissions.length;
+                document.getElementById('pendingSubmissions').textContent = pending;
+                document.getElementById('verifiedSubmissions').textContent = verified;
+                document.getElementById('rejectedSubmissions').textContent = rejected;
+                document.getElementById('totalBadges').textContent = verified;
+
+                // Update analytics visualizations
+                displayAchievementTypeChart(achievementTypes);
+                displayTopContributors(userBadgeCounts);
+                displayRecentActivity(recentActivities);
+
+                displaySubmissions();
+                showAlert(`Loaded ${allSubmissions.length} submissions from ${uniqueUsersSet.size} unique users!`, 'success');
+
+            } catch (error) {
+                console.error('Error loading submissions:', error);
+                showAlert('Error loading submissions: ' + error.message, 'error');
+            }
+        }
+
+        function displayAchievementTypeChart(achievementTypes) {
+            const chartDiv = document.getElementById('achievementTypeChart');
+            const entries = Object.entries(achievementTypes);
+            
+            if (entries.length === 0) {
+                chartDiv.innerHTML = '<p style="text-align: center; color: #71717a;">No data yet</p>';
+                return;
+            }
+
+            const maxCount = Math.max(...entries.map(([_, count]) => count));
+            
+            let html = '';
+            entries.sort((a, b) => b[1] - a[1]).forEach(([type, count]) => {
+                const percentage = (count / maxCount) * 100;
+                html += `
+                    <div class="achievement-bar">
+                        <div class="achievement-bar-label">${type}</div>
+                        <div class="achievement-bar-visual">
+                            <div class="achievement-bar-fill" style="width: ${percentage}%">
+                                <span class="achievement-bar-count">${count}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            chartDiv.innerHTML = html;
+        }
+
+        function displayTopContributors(userBadgeCounts) {
+            const contributorsDiv = document.getElementById('topContributors');
+            const entries = Object.entries(userBadgeCounts);
+            
+            if (entries.length === 0) {
+                contributorsDiv.innerHTML = '<p style="text-align: center; color: #71717a;">No verified contributors yet</p>';
+                return;
+            }
+
+            const topFive = entries.sort((a, b) => b[1] - a[1]).slice(0, 5);
+            
+            let html = '';
+            topFive.forEach(([address, badgeCount]) => {
+                const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+                html += `
+                    <div class="contributor-item">
+                        <span class="contributor-address">${shortAddress}</span>
+                        <span class="contributor-badges">${badgeCount} Badge${badgeCount > 1 ? 's' : ''}</span>
+                    </div>
+                `;
+            });
+            
+            contributorsDiv.innerHTML = html;
+        }
+
+        function displayRecentActivity(activities) {
+            const activityDiv = document.getElementById('recentActivity');
+            
+            if (activities.length === 0) {
+                activityDiv.innerHTML = '<p style="text-align: center; color: #71717a;">No activity yet</p>';
+                return;
+            }
+
+            const recent = activities.sort((a, b) => b.timestamp - a.timestamp).slice(0, 10);
+            
+            let html = '';
+            recent.forEach(activity => {
+                const shortAddress = `${activity.user.slice(0, 6)}...${activity.user.slice(-4)}`;
+                const timeAgo = getTimeAgo(activity.timestamp);
+                
+                let emoji = '📝';
+                let text = '';
+                if (activity.type === 'verified') {
+                    emoji = '✅';
+                    text = `${shortAddress} earned badge for ${activity.achievementType}`;
+                } else if (activity.type === 'rejected') {
+                    emoji = '❌';
+                    text = `${shortAddress}'s ${activity.achievementType} was rejected`;
+                } else {
+                    emoji = '📝';
+                    text = `${shortAddress} submitted ${activity.achievementType}`;
+                }
+                
+                html += `
+                    <div class="activity-item">
+                        <span class="activity-text">${emoji} ${text}</span>
+                        <span class="activity-time">${timeAgo}</span>
+                    </div>
+                `;
+            });
+            
+            activityDiv.innerHTML = html;
+        }
+
+        function getTimeAgo(timestamp) {
+            const now = Date.now() / 1000;
+            const diff = now - timestamp;
+            
+            if (diff < 60) return 'just now';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+            return `${Math.floor(diff / 86400)}d ago`;
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            displaySubmissions();
+        }
+
+        function displaySubmissions() {
+            const listDiv = document.getElementById('submissionsList');
+            
+            let filtered = allSubmissions.filter(s => {
+                if (currentTab === 'pending') return !s.verified && !s.rejected;
+                if (currentTab === 'verified') return s.verified;
+                if (currentTab === 'rejected') return s.rejected;
+                return true; // all
+            });
+
+            // Sort by most recent first
+            filtered.sort((a, b) => b.timestamp - a.timestamp);
+
+            if (filtered.length === 0) {
+                listDiv.innerHTML = '<div class="empty-state">No submissions in this category.</div>';
+                return;
+            }
+
+            // Get rejection reasons from localStorage
+            const rejectionReasons = JSON.parse(localStorage.getItem('rejectionReasons') || '{}');
+
+            let html = '';
+            filtered.forEach(sub => {
+                const date = new Date(sub.timestamp * 1000).toLocaleString();
+                const shortAddress = `${sub.user.slice(0, 6)}...${sub.user.slice(-4)}`;
+                
+                let badge = '';
+                if (sub.verified) badge = '<span class="badge badge-verified">Verified ✓</span>';
+                else if (sub.rejected) badge = '<span class="badge badge-rejected">Rejected ✗</span>';
+                else badge = '<span class="badge badge-pending">Pending</span>';
+
+                // Show rejection reason if exists
+                let rejectionNote = '';
+                if (sub.rejected && rejectionReasons[sub.id]) {
+                    rejectionNote = `<div class="detail-row" style="color: #fca5a5; border-left: 3px solid #ef4444; padding-left: 12px; margin-top: 12px;"><strong>Rejection Reason:</strong> ${rejectionReasons[sub.id].reason}</div>`;
+                }
+
+                let actions = '';
+                if (!sub.verified && !sub.rejected) {
+                    actions = `
+                        <div class="submission-actions">
+                            <button class="btn btn-success" onclick="verifySubmission(${sub.id})">
+                                ✓ Verify
+                            </button>
+                            <button class="btn btn-danger" onclick="rejectSubmission(${sub.id})">
+                                ✗ Reject
+                            </button>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="submission-card">
+                        <div class="submission-header">
+                            <div class="submission-title">
+                                <h3>${sub.achievementType}</h3>
+                                <div class="submission-id">ID: #${sub.id} | ${badge}</div>
+                            </div>
+                            ${actions}
+                        </div>
+                        <div class="submission-details">
+                            <div class="detail-row"><strong>From:</strong> ${shortAddress}</div>
+                            <div class="detail-row"><strong>Description:</strong> ${sub.description}</div>
+                            ${sub.proofLink ? `<div class="detail-row"><strong>Proof:</strong> <a href="${sub.proofLink}" target="_blank">View Link</a></div>` : ''}
+                            <div class="detail-row"><strong>Submitted:</strong> ${date}</div>
+                            ${rejectionNote}
+                        </div>
+                    </div>
+                `;
+            });
+
+            listDiv.innerHTML = html;
+        }
+
+        async function verifySubmission(id) {
+            if (!confirm(`Are you sure you want to VERIFY submission #${id}?`)) return;
+
+            try {
+                showAlert('Submitting verification transaction...', 'info');
+                const tx = await contract.verifySubmission(id, {
+                    gasLimit: 500000 // Explicit gas limit for Quai
+                });
+                
+                showAlert('Transaction submitted! Waiting for confirmation...', 'info');
+                await tx.wait();
+                
+                showAlert(`Submission #${id} verified successfully!`, 'success');
+                await loadAllSubmissions();
+
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Verification failed: ' + error.message, 'error');
+            }
+        }
+
+        async function rejectSubmission(id) {
+            // Prompt for rejection reason
+            const reason = prompt('Enter rejection reason (optional, will be visible to the user):');
+            
+            if (reason === null) return; // User clicked cancel
+            
+            const confirmMsg = reason 
+                ? `Reject submission #${id} with reason: "${reason}"?`
+                : `Reject submission #${id} without a reason?`;
+                
+            if (!confirm(confirmMsg)) return;
+
+            try {
+                showAlert('Submitting rejection transaction...', 'info');
+                const tx = await contract.rejectSubmission(id, {
+                    gasLimit: 300000 // Explicit gas limit for Quai
+                });
+                
+                showAlert('Transaction submitted! Waiting for confirmation...', 'info');
+                await tx.wait();
+                
+                // Store rejection reason in localStorage for now
+                // (Since the smart contract doesn't have a reason field, we'll store it locally)
+                if (reason) {
+                    const rejectionReasons = JSON.parse(localStorage.getItem('rejectionReasons') || '{}');
+                    rejectionReasons[id] = {
+                        reason: reason,
+                        timestamp: Date.now()
+                    };
+                    localStorage.setItem('rejectionReasons', JSON.stringify(rejectionReasons));
+                }
+                
+                showAlert(`Submission #${id} rejected.`, 'success');
+                await loadAllSubmissions();
+
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Rejection failed: ' + error.message, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.className = `alert alert-${type}`;
+            alertBox.textContent = message;
+            alertBox.classList.remove('hidden');
+
+            setTimeout(() => {
+                alertBox.classList.add('hidden');
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
